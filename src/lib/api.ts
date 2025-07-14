@@ -1,5 +1,6 @@
 // Client-side API interface that calls Netlify functions
-export const KIRBY_TOKEN_ADDRESS = 'EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups';
+export const KIRBY_TOKEN_ADDRESS =
+  'EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups'
 
 export interface TokenData {
   address: string
@@ -15,30 +16,142 @@ export interface TokenData {
 
 export async function getKirbyTokenData(): Promise<TokenData | null> {
   try {
-    // Call our Netlify function for token data
-    const response = await fetch('/api/token-data');
+    const KIRBY_TOKEN_ADDRESS = 'EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups';
     
-    if (!response.ok) {
-      throw new Error(`API response not ok: ${response.status}`);
+    // Call Jupiter APIs directly from client (like solana-components does)
+    const [priceResponse, tokenResponse] = await Promise.allSettled([
+      // Jupiter Price API V3 - Fast, real-time price data
+      fetch(`https://lite-api.jup.ag/price/v3?ids=${KIRBY_TOKEN_ADDRESS}`),
+      // Jupiter Token API V2 - Rich market data
+      fetch(`https://lite-api.jup.ag/tokens/v2/search?query=${KIRBY_TOKEN_ADDRESS}`)
+    ]);
+
+    let price = null;
+    let change24h = null;
+    let volume24h = null;
+    let marketCap = null;
+
+    // Extract price data from Price API V3 (exact copy from solana-components)
+    if (priceResponse.status === 'fulfilled' && priceResponse.value.ok) {
+      const priceData = await priceResponse.value.json();
+      console.log('Jupiter Price API response:', priceData);
+      const priceInfo = priceData[KIRBY_TOKEN_ADDRESS];
+      if (priceInfo) {
+        price = priceInfo.usdPrice;
+        change24h = priceInfo.priceChange24h;
+      }
     }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching KIRBY token data:', error);
-    
-    // Fallback data if API call fails
-    return {
+
+    // Extract market data from Token API V2 (exact copy from solana-components)
+    if (tokenResponse.status === 'fulfilled' && tokenResponse.value.ok) {
+      const tokenData = await tokenResponse.value.json();
+      console.log('Jupiter Token API response:', tokenData);
+      const tokenInfo = tokenData[0]; // First result
+      if (tokenInfo) {
+        // Use Token API V2 data if Price API V3 failed
+        if (price === null) price = tokenInfo.usdPrice;
+        if (change24h === null) change24h = tokenInfo.stats24h?.priceChange;
+        
+        // Get market data from Token API V2
+        marketCap = tokenInfo.mcap;
+        if (tokenInfo.stats24h) {
+          volume24h = (tokenInfo.stats24h.buyVolume || 0) + (tokenInfo.stats24h.sellVolume || 0);
+        }
+      }
+    }
+
+    // Calculate market cap if not provided by Jupiter
+    const totalSupply = 1000000000; // 1B total supply
+    if (marketCap === null && price !== null) {
+      marketCap = price * totalSupply;
+    }
+
+    // Get holders count from Helius DAS API with pagination
+    let holders = null;
+    const heliusApiKey = import.meta.env.VITE_HELIUS_API_KEY;
+    if (heliusApiKey) {
+      try {
+        // First, let's test the getAsset method to see what data we can get
+        const getAssetResponse = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'my-request-id',
+            method: 'getAsset',
+            params: {
+              id: KIRBY_TOKEN_ADDRESS,
+            },
+          }),
+        });
+
+        if (getAssetResponse.ok) {
+          const assetData = await getAssetResponse.json();
+          console.log('Helius getAsset response:', assetData);
+        }
+        let totalHolders = 0;
+        let page = 1;
+        let hasMore = true;
+        const maxPages = 5; // Limit to 5 pages (5000 holders max) for performance
+        
+        while (hasMore && page <= maxPages) {
+          const heliusResponse = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'getTokenAccounts',
+              params: {
+                mint: KIRBY_TOKEN_ADDRESS,
+                limit: 1000,
+                page: page,
+              },
+            }),
+          });
+
+          if (heliusResponse.ok) {
+            const heliusData = await heliusResponse.json();
+            if (heliusData.result?.token_accounts?.length) {
+              totalHolders += heliusData.result.token_accounts.length;
+              // If we got less than 1000, we've reached the end
+              hasMore = heliusData.result.token_accounts.length === 1000;
+              page++;
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+        
+        holders = totalHolders > 0 ? (page > maxPages ? `${totalHolders}+` : totalHolders) : null;
+        console.log('Total holders found:', holders);
+      } catch (error) {
+        console.error('Helius API error:', error);
+      }
+    }
+
+    const result = {
       address: KIRBY_TOKEN_ADDRESS,
       name: 'KIRBY',
       symbol: 'KIRBY',
       decimals: 6,
-      supply: '1000000000',
-      holders: 1420,
-      price: 0.000023,
-      marketCap: 23000,
-      solPrice: 21.45,
+      supply: totalSupply.toString(),
+      holders,
+      price,
+      marketCap,
+      change24h,
+      volume24h,
     };
+
+    console.log('Final token data:', result);
+    return result;
+  } catch (error) {
+    console.error('Error fetching KIRBY token data:', error)
+    
+    // NO FALLBACK - return null so component shows "No Data"
+    return null
   }
 }
 

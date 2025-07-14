@@ -25,14 +25,14 @@ export function TokenStats() {
 
   if (loading) {
     return (
-      <section className="py-16 bg-white/50 backdrop-blur-sm">
+      <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               Token Statistics
             </h2>
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-muted w-3/4 mx-auto"></div>
             </div>
           </div>
         </div>
@@ -44,7 +44,9 @@ export function TokenStats() {
     return null;
   }
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | string | null) => {
+    if (num === null) return 'No Data';
+    if (typeof num === 'string') return num; // Handle "5000+" format
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     }
@@ -54,81 +56,85 @@ export function TokenStats() {
     return num.toString();
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | null) => {
+    if (price === null) return 'No Data';
+    if (price < 0.001) {
+      return price.toExponential(3);
+    }
     if (price < 0.01) {
-      return price.toExponential(2);
+      return price.toFixed(6);
     }
     return price.toFixed(4);
   };
 
   return (
-    <section className="py-16 bg-white/50 backdrop-blur-sm">
+    <section className="py-16 bg-background">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Token Statistics
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Real-time data for $KIRBY token powered by Helius
           </p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-2 border-pink-200 hover:border-pink-300 transition-colors">
+          <Card className="border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Price</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-4 w-4 text-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                ${formatPrice(tokenData.price || 0)}
+              <div className="text-2xl font-bold text-foreground">
+                {tokenData.price !== null ? `$${formatPrice(tokenData.price)}` : 'No Data'}
               </div>
-              <CardDescription className="text-xs text-gray-500">
+              <CardDescription className="text-xs text-muted-foreground">
                 Current market price
               </CardDescription>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-purple-200 hover:border-purple-300 transition-colors">
+          <Card className="border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Market Cap</CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-600" />
+              <TrendingUp className="h-4 w-4 text-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                ${formatNumber(tokenData.marketCap || 0)}
+              <div className="text-2xl font-bold text-foreground">
+                {tokenData.marketCap !== null ? `$${formatNumber(tokenData.marketCap)}` : 'No Data'}
               </div>
-              <CardDescription className="text-xs text-gray-500">
+              <CardDescription className="text-xs text-muted-foreground">
                 Total market value
               </CardDescription>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-blue-200 hover:border-blue-300 transition-colors">
+          <Card className="border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Holders</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
+              <Users className="h-4 w-4 text-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {formatNumber(tokenData.holders || 0)}
+              <div className="text-2xl font-bold text-foreground">
+                {formatNumber(tokenData.holders)}
               </div>
-              <CardDescription className="text-xs text-gray-500">
+              <CardDescription className="text-xs text-muted-foreground">
                 Unique token holders
               </CardDescription>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-orange-200 hover:border-orange-300 transition-colors">
+          <Card className="border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Supply</CardTitle>
-              <Coins className="h-4 w-4 text-orange-600" />
+              <Coins className="h-4 w-4 text-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {formatNumber(parseInt(tokenData.supply || '0') / Math.pow(10, tokenData.decimals || 6))}
+              <div className="text-2xl font-bold text-foreground">
+                {tokenData.supply ? '1.0B' : 'No Data'}
               </div>
-              <CardDescription className="text-xs text-gray-500">
+              <CardDescription className="text-xs text-muted-foreground">
                 Total $KIRBY in circulation
               </CardDescription>
             </CardContent>
@@ -136,7 +142,7 @@ export function TokenStats() {
         </div>
 
         <div className="text-center">
-          <Button asChild variant="outline" size="lg" className="border-orange-200 hover:bg-orange-50">
+          <Button asChild variant="outline" size="lg" className="border-border hover:bg-muted">
             <a 
               href="https://orb.helius.dev/address/EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups/metadata?cluster=mainnet-beta"
               target="_blank"

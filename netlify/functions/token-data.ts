@@ -23,35 +23,48 @@ export const handler: Handler = async (event, context) => {
   try {
     const KIRBY_TOKEN_ADDRESS = 'EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups';
     
-    // Get token info from Jupiter API
-    const [jupiterPriceResponse, coingeckoResponse] = await Promise.allSettled([
-      fetch(`https://price.jup.ag/v4/price?ids=${KIRBY_TOKEN_ADDRESS}`),
-      fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true')
+    // Use the exact same API calls as solana-components
+    const [priceResponse, tokenResponse] = await Promise.allSettled([
+      // Jupiter Price API V3 - Fast, real-time price data
+      fetch(`https://lite-api.jup.ag/price/v3?ids=${KIRBY_TOKEN_ADDRESS}`),
+      // Jupiter Token API V2 - Rich market data (less frequent updates needed)
+      fetch(`https://lite-api.jup.ag/tokens/v2/search?query=${KIRBY_TOKEN_ADDRESS}`)
     ]);
 
-    let price = 0.000023; // fallback
-    let marketCap = 23000;
-    let holders = 1420;
+    let price = null;
+    let change24h = null;
+    let volume24h = null;
+    let marketCap = null;
 
-    // Try to get real price from Jupiter
-    if (jupiterPriceResponse.status === 'fulfilled' && jupiterPriceResponse.value.ok) {
-      const jupiterData = await jupiterPriceResponse.value.json();
-      const tokenPrice = jupiterData.data?.[KIRBY_TOKEN_ADDRESS];
-      if (tokenPrice?.price) {
-        price = tokenPrice.price;
+    // Extract price data from Price API V3 (exact copy from solana-components)
+    if (priceResponse.status === 'fulfilled' && priceResponse.value.ok) {
+      const priceData = await priceResponse.value.json();
+      const priceInfo = priceData[KIRBY_TOKEN_ADDRESS];
+      if (priceInfo) {
+        price = priceInfo.usdPrice;
+        change24h = priceInfo.priceChange24h;
       }
     }
 
-    // Get SOL price for market cap calculation
-    let solPrice = 21.45;
-    if (coingeckoResponse.status === 'fulfilled' && coingeckoResponse.value.ok) {
-      const cgData = await coingeckoResponse.value.json();
-      if (cgData.solana?.usd) {
-        solPrice = cgData.solana.usd;
+    // Extract market data from Token API V2 (exact copy from solana-components)
+    if (tokenResponse.status === 'fulfilled' && tokenResponse.value.ok) {
+      const tokenData = await tokenResponse.value.json();
+      const tokenInfo = tokenData[0]; // First result
+      if (tokenInfo) {
+        // Use Token API V2 data if Price API V3 failed
+        if (price === null) price = tokenInfo.usdPrice;
+        if (change24h === null) change24h = tokenInfo.stats24h?.priceChange;
+        
+        // Get market data from Token API V2
+        marketCap = tokenInfo.mcap;
+        if (tokenInfo.stats24h) {
+          volume24h = (tokenInfo.stats24h.buyVolume || 0) + (tokenInfo.stats24h.sellVolume || 0);
+        }
       }
     }
 
-    // Try to get holder count from Helius if API key is available
+    // Get holder count from Helius if API key is available
+    let holders = null;
     const heliusApiKey = process.env.HELIUS_API_KEY;
     if (heliusApiKey) {
       try {
@@ -80,10 +93,13 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    // Calculate market cap (assuming 1B total supply)
-    const totalSupply = 1000000000;
-    marketCap = price * totalSupply;
+    // Calculate market cap if not provided by Jupiter
+    const totalSupply = 1000000000; // 1B total supply
+    if (marketCap === null && price !== null) {
+      marketCap = price * totalSupply;
+    }
 
+    // NO FALLBACK DATA - if we don't have real data, return null
     const tokenData = {
       address: KIRBY_TOKEN_ADDRESS,
       name: 'KIRBY',
@@ -93,7 +109,8 @@ export const handler: Handler = async (event, context) => {
       holders,
       price,
       marketCap,
-      solPrice,
+      change24h,
+      volume24h,
     };
 
     return {
@@ -104,20 +121,11 @@ export const handler: Handler = async (event, context) => {
   } catch (error) {
     console.error('API Error:', error);
     
-    // Return fallback data on error
     return {
-      statusCode: 200,
+      statusCode: 500,
       headers,
-      body: JSON.stringify({
-        address: 'EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups',
-        name: 'KIRBY',
-        symbol: 'KIRBY',
-        decimals: 6,
-        supply: '1000000000',
-        holders: 1420,
-        price: 0.000023,
-        marketCap: 23000,
-        solPrice: 21.45,
+      body: JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Internal server error' 
       }),
     };
   }
