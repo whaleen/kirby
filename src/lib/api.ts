@@ -36,20 +36,35 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
     // Extract price data from Price API V3 (exact copy from solana-components)
     if (priceResponse.status === 'fulfilled' && priceResponse.value.ok) {
       const priceData = await priceResponse.value.json();
-      console.log('Jupiter Price API response:', priceData);
+      console.group('🚀 JUPITER PRICE API V3');
+      console.log('Full response:', priceData);
       const priceInfo = priceData[KIRBY_TOKEN_ADDRESS];
       if (priceInfo) {
+        console.log('Price data extracted:', {
+          usdPrice: priceInfo.usdPrice,
+          priceChange24h: priceInfo.priceChange24h,
+          available_fields: Object.keys(priceInfo)
+        });
         price = priceInfo.usdPrice;
         change24h = priceInfo.priceChange24h;
       }
+      console.groupEnd();
     }
 
     // Extract market data from Token API V2 (exact copy from solana-components)
     if (tokenResponse.status === 'fulfilled' && tokenResponse.value.ok) {
       const tokenData = await tokenResponse.value.json();
-      console.log('Jupiter Token API response:', tokenData);
+      console.group('📊 JUPITER TOKEN API V2');
+      console.log('Full response:', tokenData);
       const tokenInfo = tokenData[0]; // First result
       if (tokenInfo) {
+        console.log('Token data extracted:', {
+          usdPrice: tokenInfo.usdPrice,
+          mcap: tokenInfo.mcap,
+          stats24h: tokenInfo.stats24h,
+          available_fields: Object.keys(tokenInfo)
+        });
+        
         // Use Token API V2 data if Price API V3 failed
         if (price === null) price = tokenInfo.usdPrice;
         if (change24h === null) change24h = tokenInfo.stats24h?.priceChange;
@@ -57,7 +72,15 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
         // Get market data from Token API V2
         marketCap = tokenInfo.mcap;
         volume24h = (tokenInfo.stats24h?.buyVolume || 0) + (tokenInfo.stats24h?.sellVolume || 0);
+        
+        console.log('Final extracted values:', {
+          price: price,
+          change24h: change24h,
+          marketCap: marketCap,
+          volume24h: volume24h
+        });
       }
+      console.groupEnd();
     }
 
     // Calculate market cap if not provided by Jupiter
@@ -87,7 +110,18 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
 
         if (getAssetResponse.ok) {
           const assetData = await getAssetResponse.json();
-          console.log('Helius getAsset response:', assetData);
+          console.group('🌐 HELIUS GET ASSET API');
+          console.log('Full response:', assetData);
+          if (assetData.result) {
+            console.log('Asset data extracted:', {
+              id: assetData.result.id,
+              content: assetData.result.content,
+              authorities: assetData.result.authorities,
+              supply: assetData.result.supply,
+              available_fields: Object.keys(assetData.result)
+            });
+          }
+          console.groupEnd();
         }
         let totalHolders = 0;
         let page = 1;
@@ -126,7 +160,15 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
         }
         
         holders = totalHolders > 0 ? (page > maxPages ? `${totalHolders}+` : totalHolders) : null;
-        console.log('Total holders found:', holders);
+        
+        console.group('👥 HELIUS TOKEN ACCOUNTS API');
+        console.log('Pagination summary:', {
+          totalPages: page - 1,
+          maxPagesReached: page > maxPages,
+          totalHolders: totalHolders,
+          finalHoldersValue: holders
+        });
+        console.groupEnd();
       } catch (error) {
         console.error('Helius API error:', error);
       }
