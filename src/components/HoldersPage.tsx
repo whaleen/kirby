@@ -50,7 +50,7 @@ async function fetchTokenHolders(currentPrice?: number): Promise<HolderData[]> {
     throw new Error('Helius API key not configured');
   }
 
-  let allHolders: TokenAccount[] = [];
+  const allHolders: TokenAccount[] = [];
   let page = 1;
   let hasMore = true;
   const maxPages = 10; // Limit to 10k holders for performance
@@ -87,12 +87,12 @@ async function fetchTokenHolders(currentPrice?: number): Promise<HolderData[]> {
 
   // Process and aggregate holders data by owner
   const ownerBalances = new Map<string, { balance: number; accounts: TokenAccount[]; frozen: boolean }>();
-  
+
   // Aggregate all token accounts by owner
   allHolders.forEach((account: TokenAccount) => {
     const balance = account.amount / Math.pow(10, DECIMALS);
     const existing = ownerBalances.get(account.owner);
-    
+
     if (existing) {
       existing.balance += balance;
       existing.accounts.push(account);
@@ -112,24 +112,24 @@ async function fetchTokenHolders(currentPrice?: number): Promise<HolderData[]> {
       const balance = data.balance;
       const percentage = (balance / TOTAL_SUPPLY) * 100;
       const usdValue = currentPrice ? balance * currentPrice : 0;
-      
+
       return {
         owner: owner,
         balance: balance,
-        balanceFormatted: balance >= 1000000 
+        balanceFormatted: balance >= 1000000
           ? `${(balance / 1000000).toFixed(1)}M`
-          : balance >= 1000 
-          ? `${(balance / 1000).toFixed(1)}K`
-          : balance.toFixed(2),
+          : balance >= 1000
+            ? `${(balance / 1000).toFixed(1)}K`
+            : balance.toFixed(2),
         percentage: percentage,
         tokenAccount: `${data.accounts.length} account${data.accounts.length > 1 ? 's' : ''}`, // Show account count
         frozen: data.frozen,
         usdValue: usdValue,
-        usdValueFormatted: usdValue >= 1000 
+        usdValueFormatted: usdValue >= 1000
           ? `$${(usdValue / 1000).toFixed(1)}K`
-          : usdValue >= 1 
-          ? `$${usdValue.toFixed(2)}`
-          : `$${usdValue.toFixed(4)}`
+          : usdValue >= 1
+            ? `$${usdValue.toFixed(2)}`
+            : `$${usdValue.toFixed(4)}`
       };
     })
     // Sort by balance descending
@@ -160,20 +160,20 @@ export function HoldersPage({ className }: HoldersPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [copyingAddress, setCopyingAddress] = useState<string | null>(null);
-  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  // const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
   // Load holders data
   const loadHolders = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // First get current price from our existing API
       const { getKirbyTokenData } = await import('@/lib/api');
       const tokenData = await getKirbyTokenData();
       const price = tokenData?.price || 0;
-      setCurrentPrice(price);
-      
+      // setCurrentPrice(price);
+
       // Then fetch holders with price
       const holdersData = await fetchTokenHolders(price);
       setHolders(holdersData);
@@ -191,10 +191,10 @@ export function HoldersPage({ className }: HoldersPageProps) {
   }, []);
 
   // Separate special wallets from regular holders
-  const specialWallets = holders.filter(holder => 
+  const specialWallets = holders.filter(holder =>
     SPECIAL_WALLETS[holder.owner as keyof typeof SPECIAL_WALLETS]
   );
-  const regularHolders = holders.filter(holder => 
+  const regularHolders = holders.filter(holder =>
     !SPECIAL_WALLETS[holder.owner as keyof typeof SPECIAL_WALLETS]
   );
 
@@ -210,6 +210,7 @@ export function HoldersPage({ className }: HoldersPageProps) {
       await copyToClipboard(address);
       setTimeout(() => setCopyingAddress(null), 1000);
     } catch (err) {
+      console.error('Failed to copy address:', err);
       setCopyingAddress(null);
     }
   };
@@ -249,7 +250,7 @@ export function HoldersPage({ className }: HoldersPageProps) {
               Top token holders ranked by balance
             </CardDescription>
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -292,7 +293,7 @@ export function HoldersPage({ className }: HoldersPageProps) {
                       const isCopying = copyingAddress === holder.owner;
                       const walletInfo = SPECIAL_WALLETS[holder.owner as keyof typeof SPECIAL_WALLETS];
                       const IconComponent = walletInfo.icon;
-                      
+
                       return (
                         <TableRow key={`${holder.owner}-${index}`} className="bg-muted/20">
                           <TableCell>
@@ -372,7 +373,7 @@ export function HoldersPage({ className }: HoldersPageProps) {
                 {paginatedHolders.map((holder, index) => {
                   const rank = startIndex + index + 1;
                   const isCopying = copyingAddress === holder.owner;
-                  
+
                   return (
                     <TableRow key={holder.owner}>
                       <TableCell className="font-medium">#{rank}</TableCell>

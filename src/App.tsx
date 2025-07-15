@@ -2,27 +2,26 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
 import { TokenStats } from '@/components/TokenStats'
 import { TokenChart } from '@/components/TokenChart'
 import { HoldersPage } from '@/components/HoldersPage'
+import { TokenInfo } from '@/components/TokenInfo'
 import { cn } from '@/lib/utils'
 import './App.css'
 import './styles/monochrome.css'
 
 function App() {
-  const [currentView, setCurrentView] = useState<'overview' | 'holders'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'kirby' | 'holders'>('overview');
 
   return (
     <div className="min-h-screen bg-background monochrome">
       {/* Top Navigation Bar */}
-      <nav 
+      <nav
         className="border-b backdrop-blur supports-[backdrop-filter]:bg-background/60"
         style={{ backgroundColor: '#000100' }}
       >
@@ -58,6 +57,18 @@ function App() {
                     className={cn(
                       navigationMenuTriggerStyle(),
                       "cursor-pointer !bg-gray-800 !text-white hover:!bg-gray-700",
+                      currentView === 'kirby' && "!bg-white !text-black hover:!bg-gray-100"
+                    )}
+                    onClick={() => setCurrentView('kirby')}
+                  >
+                    KIRBY
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      "cursor-pointer !bg-gray-800 !text-white hover:!bg-gray-700",
                       currentView === 'holders' && "!bg-white !text-black hover:!bg-gray-100"
                     )}
                     onClick={() => setCurrentView('holders')}
@@ -72,17 +83,17 @@ function App() {
       </nav>
 
       {/* Header */}
-      <header 
+      <header
         className="relative"
         style={{ backgroundColor: '#000100' }}
       >
         {/* Kirby in Space GIF */}
-        <img 
-          src="/kirby-in-space.gif" 
-          alt="Kirby in Space" 
+        <img
+          src="/kirby-in-space.gif"
+          alt="Kirby in Space"
           className="absolute top-4 right-4 h-40 w-auto z-10"
         />
-        
+
         <div className="max-w-4xl mx-auto px-4 py-8 relative z-10">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-2 text-white">
@@ -168,6 +179,12 @@ function App() {
             </div>
           </section>
         </>
+      ) : currentView === 'kirby' ? (
+        <section className="py-8 bg-background">
+          <div className="max-w-6xl mx-auto px-4">
+            <TokenInfo />
+          </div>
+        </section>
       ) : (
         <section className="py-8 bg-background">
           <div className="max-w-6xl mx-auto px-4">
