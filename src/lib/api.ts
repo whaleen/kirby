@@ -12,6 +12,8 @@ export interface TokenData {
   price?: number
   marketCap?: number
   solPrice?: number
+  priceChange24h?: number
+  volume24h?: number
 }
 
 export async function getKirbyTokenData(): Promise<TokenData | null> {
@@ -29,6 +31,7 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
     let price = null;
     let change24h = null;
     let marketCap = null;
+    let volume24h = null;
 
     // Extract price data from Price API V3 (exact copy from solana-components)
     if (priceResponse.status === 'fulfilled' && priceResponse.value.ok) {
@@ -53,6 +56,7 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
         
         // Get market data from Token API V2
         marketCap = tokenInfo.mcap;
+        volume24h = (tokenInfo.stats24h?.buyVolume || 0) + (tokenInfo.stats24h?.sellVolume || 0);
       }
     }
 
@@ -137,9 +141,10 @@ export async function getKirbyTokenData(): Promise<TokenData | null> {
       holders: holders || undefined,
       price: price || undefined,
       marketCap: marketCap || undefined,
+      priceChange24h: change24h || undefined,
+      volume24h: volume24h || undefined,
     };
 
-    console.log('Final token data:', result);
     return result;
   } catch (error) {
     console.error('Error fetching KIRBY token data:', error)

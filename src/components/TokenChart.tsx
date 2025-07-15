@@ -71,9 +71,9 @@ export interface TokenChartProps {
 
 // Time range configurations - optimized for week-old token
 const timeRangeConfigs: Record<TimeRange, { days: number; label: string; points: number }> = {
-  '1H': { days: 1/24, label: '1H', points: 12 },     // 1 hour, 5-min intervals
-  '6H': { days: 6/24, label: '6H', points: 12 },     // 6 hours, 30-min intervals  
-  '12H': { days: 12/24, label: '12H', points: 12 },  // 12 hours, 1-hour intervals
+  '1H': { days: 1 / 24, label: '1H', points: 12 },     // 1 hour, 5-min intervals
+  '6H': { days: 6 / 24, label: '6H', points: 12 },     // 6 hours, 30-min intervals  
+  '12H': { days: 12 / 24, label: '12H', points: 12 },  // 12 hours, 1-hour intervals
   '1D': { days: 1, label: '1D', points: 24 },        // 1 day, 1-hour intervals
   '7D': { days: 7, label: '7D', points: 7 },         // 7 days, 1-day intervals
   'ALL': { days: 7, label: 'ALL', points: 7 }        // All data (max 7 days for new token)
@@ -83,10 +83,10 @@ const mapTokenDataToChartData = (data: TokenData): TokenChartData => ({
   symbol: data.symbol ?? '',
   name: data.name ?? '',
   current_price: typeof data.price === 'number' ? data.price : (typeof data.price === 'string' ? parseFloat(data.price) : 0) || 0,
-  price_change_24h: 0,
-  price_change_percentage_24h: 0,
+  price_change_24h: data.priceChange24h || 0,
+  price_change_percentage_24h: data.priceChange24h || 0,
   market_cap: typeof data.marketCap === 'number' ? data.marketCap : (typeof data.marketCap === 'string' ? parseFloat(data.marketCap) : 0) || 0,
-  total_volume: 0,
+  total_volume: data.volume24h || 0,
   prices: [],
 });
 
@@ -117,7 +117,6 @@ export function TokenChart({
   // Always use getKirbyTokenData for stats
   const fetchStats = async (): Promise<TokenData> => {
     const data = await getKirbyTokenData();
-    console.log('getKirbyTokenData result:', data);
     if (!data) throw new Error('No token data available');
     return data;
   };
@@ -125,110 +124,68 @@ export function TokenChart({
   // Always use GeckoTerminal for chart data
   const fetchGeckoTerminalChart = async (range: TimeRange): Promise<PricePoint[]> => {
     const days = timeRangeConfigs[range].days;
-    
+
     // Select appropriate timeframe for GeckoTerminal API
     let timeframe = 'hour';
     if (days < 1) timeframe = 'minute';        // 1H, 6H, 12H use minute data
     else if (days <= 7) timeframe = 'hour';    // 1D, 7D, ALL use hour data
     else timeframe = 'day';                    // (not used for week-old token)
-    
+
     // Use the pool address instead of token address for OHLCV data
     const KIRBY_POOL_ADDRESS = 'BU3u3cZgywn4B8KWBdpdBoQQzdP4tugjtc9a6Ga2tYbe'; // KIRBY/SOL pool
     const ohlcvResponse = await fetch(
       `https://api.geckoterminal.com/api/v2/networks/solana/pools/${KIRBY_POOL_ADDRESS}/ohlcv/${timeframe}`
     );
-    
+
     let historicalData: PricePoint[] = [];
-    
+
     if (ohlcvResponse.ok) {
       const ohlcvData = await ohlcvResponse.json();
-      console.log('=== RAW GECKOTERMINAL RESPONSE ===');
-      console.log('Full response:', JSON.stringify(ohlcvData, null, 2));
-      
-      // Try different response structures
       let ohlcvList = ohlcvData.data?.attributes?.ohlcv_list || ohlcvData.data || ohlcvData || [];
-      
-      console.log('=== OHLCV LIST EXTRACTION ===');
-      console.log('ohlcvData.data:', ohlcvData.data);
-      console.log('ohlcvData.data?.attributes:', ohlcvData.data?.attributes);
-      console.log('ohlcvData.data?.attributes?.ohlcv_list:', ohlcvData.data?.attributes?.ohlcv_list);
-      console.log('Final ohlcvList:', ohlcvList);
-      
+
       if (Array.isArray(ohlcvList) && ohlcvList.length > 0) {
-        console.log('=== PARSING OHLCV ARRAYS ===');
-        console.log('First OHLCV item structure:', ohlcvList[0]);
-        console.log('Sample OHLCV items:', ohlcvList.slice(0, 3));
-        console.log('OHLCV array format: [timestamp, open, high, low, close, volume]');
-        
-        historicalData = ohlcvList.map((arr: [number, number, number, number, number, number], index: number) => {
-          const point = {
-            timestamp: Number(arr[0]) * 1000, // seconds to ms
-            price: Number(arr[4]),            // close price
-            volume: Number(arr[5]),           // volume
-            market_cap: 0
-          };
-          console.log(`OHLCV[${index}]: timestamp=${arr[0]}, open=${arr[1]}, high=${arr[2]}, low=${arr[3]}, close=${arr[4]}, volume=${arr[5]}`);
-          console.log(`Mapped point[${index}]:`, point);
-          return point;
-        });
-        
-        console.log('Parsed historicalData - NO FILTERING:', historicalData);
-        
+        historicalData = ohlcvList.map((arr: [number, number, number, number, number, number]) => ({
+          timestamp: Number(arr[0]) * 1000, // seconds to ms
+          price: Number(arr[4]),            // close price
+          volume: Number(arr[5]),           // volume
+          market_cap: 0
+        }));
+
         // Sort by timestamp (oldest first for proper chart display)
         historicalData.sort((a, b) => a.timestamp - b.timestamp);
-        console.log('Sorted historicalData (oldest first):', historicalData.slice(0, 5));
-      } else {
-        console.warn('No valid OHLCV data found in response structure');
       }
     } else {
-      console.error('Failed to fetch OHLCV data from GeckoTerminal:', ohlcvResponse.status);
-      // NO FALLBACK - if GeckoTerminal fails, show error
       throw new Error(`GeckoTerminal API failed with status ${ohlcvResponse.status}`);
     }
-    
+
     return historicalData;
   };
 
   // Load both stats and chart data on mount and when dependencies change
   useEffect(() => {
-    console.log('=== USEEFFECT STARTING ===');
     setIsLoading(true);
     setError(null);
-    
-    console.log('About to call Promise.all with fetchStats and fetchGeckoTerminalChart');
+
     Promise.all([
       fetchStats(),
       fetchGeckoTerminalChart(currentTimeRange)
     ])
       .then(([statsData, chartPoints]) => {
-        console.log('=== FINAL DATA BEING SET ===');
-        console.log('statsData:', statsData);
-        console.log('chartPoints from GeckoTerminal:', chartPoints);
-        console.log('chartPoints length:', chartPoints.length);
-        console.log('Sample chartPoints prices:', chartPoints.slice(0, 5).map(p => p.price));
-        
         const chartStats = mapTokenDataToChartData(statsData);
         setStats(chartStats);
-        
+
         // Add date and time fields for chart X axis
         const chartDataWithDate = chartPoints.map(point => ({
           ...point,
           date: new Date(point.timestamp).toLocaleDateString(),
           time: new Date(point.timestamp).toLocaleTimeString(),
         }));
-        
-        console.log('Final chartDataWithDate being set:', chartDataWithDate);
-        console.log('Sample final prices:', chartDataWithDate.slice(0, 5).map(p => p.price));
-        
-        // USE THE REAL GECKOTERMINAL DATA
+
         setChartData(chartDataWithDate);
         onDataLoad?.(chartStats);
       })
       .catch((err) => {
-        console.error('=== PROMISE.ALL FAILED ===');
-        console.error('Error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch chart data';
-        console.error('Error message:', errorMessage);
         setError(errorMessage);
         onError?.(errorMessage);
       })
@@ -321,8 +278,10 @@ export function TokenChart({
                     <TrendingDown className="w-3 h-3 mr-1" />
                   )}
                   {stats.price_change_percentage_24h?.toFixed(2) || '0.00'}%
+
                 </Badge>
               )}
+
             </CardTitle>
             <CardDescription>
               {stats && (
@@ -337,7 +296,7 @@ export function TokenChart({
                   )}
                   {showVolume && stats.total_volume && (
                     <span className="text-sm text-muted-foreground">
-                      Vol: ${(stats.total_volume / 1000000).toFixed(1)}M
+                      Vol: ${stats.total_volume >= 1000000 ? `${(stats.total_volume / 1000000).toFixed(1)}M` : `${(stats.total_volume / 1000).toFixed(0)}K`}
                     </span>
                   )}
                 </div>
@@ -387,12 +346,6 @@ export function TokenChart({
               No chart data available.
             </div>
           ) : (
-            (() => {
-              console.log('=== ABOUT TO RENDER CHART ===');
-              console.log('chartData length:', chartData.length);
-              console.log('Sample chartData prices:', chartData.slice(0, 5).map(p => p.price));
-              console.log('First 3 complete data points:', chartData.slice(0, 3));
-            })(),
             <ChartContainer config={chartConfig} className="w-full">
               <ResponsiveContainer width="100%" height={height}>
                 {chartType === 'area' ? (
