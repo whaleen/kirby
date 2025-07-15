@@ -82,10 +82,10 @@ const timeRangeConfigs: Record<TimeRange, { days: number; label: string; points:
 const mapTokenDataToChartData = (data: TokenData): TokenChartData => ({
   symbol: data.symbol ?? '',
   name: data.name ?? '',
-  current_price: typeof data.price === 'number' ? data.price : parseFloat(data.price?.toString() || '0') || 0,
+  current_price: typeof data.price === 'number' ? data.price : (typeof data.price === 'string' ? parseFloat(data.price) : 0) || 0,
   price_change_24h: 0,
   price_change_percentage_24h: 0,
-  market_cap: typeof data.marketCap === 'number' ? data.marketCap : parseFloat(data.marketCap?.toString() || '0') || 0,
+  market_cap: typeof data.marketCap === 'number' ? data.marketCap : (typeof data.marketCap === 'string' ? parseFloat(data.marketCap) : 0) || 0,
   total_volume: 0,
   prices: [],
 });
@@ -124,7 +124,6 @@ export function TokenChart({
 
   // Always use GeckoTerminal for chart data
   const fetchGeckoTerminalChart = async (range: TimeRange): Promise<PricePoint[]> => {
-    const KIRBY_TOKEN_ADDRESS = 'EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups';
     const days = timeRangeConfigs[range].days;
     
     // Select appropriate timeframe for GeckoTerminal API
