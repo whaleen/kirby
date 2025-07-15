@@ -1,4 +1,4 @@
-# Kirby On Sol
+# Kirby On Studio
 
 Official website for $KIRBY token launched on Jupiter Studio.
 
@@ -41,10 +41,11 @@ Official website for $KIRBY token launched on Jupiter Studio.
    ```
 
 4. Start the development server:
+
    ```bash
    # For frontend only
    npm run dev
-   
+
    # For full-stack with Netlify functions (recommended)
    npm run dev:netlify
    ```
@@ -59,11 +60,13 @@ npm run preview
 ## Deployment
 
 This site is configured for Netlify deployment with:
+
 - Netlify Functions for API endpoints
 - Real-time data from Jupiter and CoinGecko APIs
 - Helius integration for blockchain data
 
 Set these environment variables in Netlify:
+
 - `HELIUS_API_KEY` - Your Helius API key for token data
 
 ## Features

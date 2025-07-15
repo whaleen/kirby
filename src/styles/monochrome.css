@@ -1,0 +1,71 @@
+/* Monochrome Theme */
+.monochrome {
+  --radius: 0.5rem;
+  --background: oklch(0.95 0.02 350);
+  --foreground: oklch(0.25 0.08 350);
+  --card: oklch(0.92 0.025 350);
+  --card-foreground: oklch(0.25 0.08 350);
+  --popover: oklch(0.98 0.015 350);
+  --popover-foreground: oklch(0.25 0.08 350);
+  --primary: oklch(0.45 0.12 350);
+  --primary-foreground: oklch(0.98 0.015 350);
+  --secondary: oklch(0.85 0.03 350);
+  --secondary-foreground: oklch(0.35 0.09 350);
+  --muted: oklch(0.88 0.025 350);
+  --muted-foreground: oklch(0.55 0.06 350);
+  --accent: oklch(0.82 0.035 350);
+  --accent-foreground: oklch(0.35 0.09 350);
+  --destructive: oklch(0.5 0.15 350);
+  --border: oklch(0.75 0.05 350);
+  --input: oklch(0.9 0.02 350);
+  --ring: oklch(0.45 0.12 350);
+  --chart-1: oklch(0.4 0.1 350);
+  --chart-2: oklch(0.5 0.12 350);
+  --chart-3: oklch(0.6 0.08 350);
+  --chart-4: oklch(0.7 0.06 350);
+  --chart-5: oklch(0.8 0.04 350);
+  --chart-positive: oklch(0.5 0.08 350);
+  --chart-negative: oklch(0.4 0.1 350);
+  --chart-grid: oklch(0.75 0.05 350);
+  --chart-line-color: oklch(0.45 0.1 350);
+  --chart-color-primary: oklch(0.45 0.1 350);
+  --chart-color-secondary: oklch(0.6 0.08 350);
+}
+
+/* Monochrome theme specific styling */
+.monochrome * {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Monochrome token chart styling - flat with no grid lines */
+.monochrome .token-chart {
+  background-color: var(--secondary);
+}
+
+.monochrome .token-chart--error {
+  background-color: var(--destructive);
+  color: var(--primary-foreground);
+}
+
+.monochrome .token-chart__grid {
+  stroke: transparent;
+}
+
+.monochrome .token-chart__price--positive {
+  color: var(--chart-positive);
+}
+
+.monochrome .token-chart__price--negative {
+  color: var(--chart-negative);
+}
+
+.monochrome .token-chart__line {
+  stroke: var(--chart-line-color);
+}
+
+.monochrome .token-chart__area {
+  stroke: var(--chart-line-color);
+  fill: var(--chart-line-color);
+}

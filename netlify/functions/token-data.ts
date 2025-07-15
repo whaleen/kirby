@@ -99,14 +99,21 @@ export const handler: Handler = async (event, context) => {
       marketCap = price * totalSupply;
     }
 
-    // NO FALLBACK DATA - if we don't have real data, return null
+    // Format response to match TokenChart API expectations
     const tokenData = {
       address: KIRBY_TOKEN_ADDRESS,
-      name: 'KIRBY',
+      name: 'KIRBY Token',
       symbol: 'KIRBY',
       decimals: 6,
       supply: totalSupply.toString(),
       holders,
+      // TokenChart expects these specific field names
+      current_price: price,
+      price_change_24h: change24h,
+      price_change_percentage_24h: change24h,
+      market_cap: marketCap,
+      total_volume: volume24h,
+      // Legacy fields for backward compatibility
       price,
       marketCap,
       change24h,

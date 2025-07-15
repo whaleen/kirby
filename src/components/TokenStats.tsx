@@ -44,8 +44,8 @@ export function TokenStats() {
     return null;
   }
 
-  const formatNumber = (num: number | string | null) => {
-    if (num === null) return 'No Data';
+  const formatNumber = (num: number | string | null | undefined) => {
+    if (num === null || num === undefined) return 'No Data';
     if (typeof num === 'string') return num; // Handle "5000+" format
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
@@ -56,8 +56,8 @@ export function TokenStats() {
     return num.toString();
   };
 
-  const formatPrice = (price: number | null) => {
-    if (price === null) return 'No Data';
+  const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return 'No Data';
     if (price < 0.001) {
       return price.toExponential(3);
     }
@@ -68,17 +68,17 @@ export function TokenStats() {
   };
 
   return (
-    <section className="py-16 bg-background">
+    <section className="py-16 bg-muted background">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Token Statistics
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Real-time data for $KIRBY token powered by Helius
+            Real-time data for $KIRBY token powered by Jupiter and Helius
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -142,18 +142,34 @@ export function TokenStats() {
         </div>
 
         <div className="text-center">
-          <Button asChild variant="outline" size="lg" className="border-border hover:bg-muted">
-            <a 
-              href="https://orb.helius.dev/address/EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups/metadata?cluster=mainnet-beta"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center"
-            >
-              <img src="/helius-logo-mark.svg" alt="Helius" className="w-5 h-5 mr-2" />
-              View on Helius Explorer
-              <ExternalLink className="w-4 h-4 ml-2" />
-            </a>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild variant="outline" size="lg" className="border-border hover:bg-muted">
+              <a
+                href="https://orb.helius.dev/address/EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups/metadata?cluster=mainnet-beta"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-primary text-primary-foreground font-medium hover:bg-accent"
+
+              >
+                <img src="/helius-logo-mark.svg" alt="Helius" className="w-5 h-5 mr-2" />
+                View on Helius Explorer
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="border-border hover:bg-muted">
+              <a
+                href="https://jup.ag/studio/EoLW32eUjN9XibMLEb53CMzLtg9XxnHFU6fbpSukjups"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-primary text-primary-foreground font-medium hover:bg-accent"
+
+              >
+                <img src="/jupiter-logo.webp" alt="Jupiter Studio" className="w-5 h-5 mr-2" />
+                View on Jupiter Studio
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
     </section>
